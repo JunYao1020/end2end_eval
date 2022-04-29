@@ -36,3 +36,8 @@ def rotate_right_image(image_path, des_dir, angle=15):
 
     cv2.imwrite(des_dir + image_name, rotated)
     return rotated, des_dir + image_name
+
+
+if __name__ == '__main__':
+    rotate_image(r'D:\wjs\clas_data_set\eval_data\4000_error\LN86DDBF5HA046008-vin_ios_1631846872841_16213.jpg'
+                 , 'D:\\wjs\\clas_data_set\\eval_data\\4000_error\\temp\\', 45)

@@ -20,7 +20,7 @@ def is_chinese(c):
     :param c: 待判断的字符
     :return: 汉字返回true
     """
-    return '\u4e00' <= c <= '\u9fff'
+    return '\u4e00' <= c <= '\u9fff' and c != '年' and c != '月'
 
 
 def process_real_dict(real):
@@ -54,6 +54,36 @@ def process_raw(raw):
             if i == len(r) - 1:
                 res.append(r[start:])
     return filter_processed_res(res)
+
+
+def separate_eng_ch(raw_str):
+    res = []
+    start = 0
+    for i, c in enumerate(raw_str):
+        if i == 0:
+            continue
+        if is_chinese(c) and not is_chinese(raw_str[i - 1]):
+            res.append(raw_str[start: i])
+            start = i
+        if i == len(raw_str) - 1:
+            res.append(raw_str[start:])
+
+    return res
+
+
+def separate_ch_eng_single(raw_str):
+    for i, c in enumerate(raw_str):
+        if not is_chinese(c):
+            return raw_str[: i], raw_str[i:].strip()
+    return raw_str, ''
+
+
+def is_vin_then_get_vin(raw_str):
+    if (raw_str[:3].lower() == 'vin' or raw_str[:3].lower() == 'v1n') and len(raw_str) > 17:
+        return raw_str[3:]
+    if 15 < len(raw_str) < 20 and bool(re.search(r'\d', raw_str)):
+        return raw_str
+    return ''
 
 
 def filter_processed_res(processed_res):

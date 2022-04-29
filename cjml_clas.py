@@ -23,3 +23,23 @@ class CjmlClas:
         result = self.clas.predict(image_path)
         return next(result)[0]['class_ids'][0]
 
+    def get_image_top2_class_and_score(self, image_path):
+        """
+        根据图片的路径获取图片的top2分类结果和置信度
+
+        :param image_path: 图片路径
+        :return: 图片分类结果top2
+        """
+        if image_path[-5: -4] == '本':
+            return
+        result = self.clas.predict(image_path)
+        res_dict = next(result)[0]
+        top2_class_and_score = [res_dict['class_ids'], res_dict['scores']]
+        return top2_class_and_score
+
+
+if __name__ == '__main__':
+    # cls = CjmlClas(top_k=2)
+    # res = cls.get_image_top2_class_and_score(r'D:\wjs\clas_data_set\eval_data\4045\3C4PDCGB7GT236220-vin_ios_1641283583267_45445.jpg')
+    print(abs(45 - 90))
+

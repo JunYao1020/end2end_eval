@@ -45,6 +45,29 @@ def mark_on_pic(text_list, pic):
     return pic
 
 
+def mark_on_pic_for_struct(text_list, pic):
+
+    max_len = 0
+
+    for s in text_list:
+        if len(s) > max_len:
+            max_len = len(s)
+
+    size = pic.size
+    gap_y = size[1] // (len(text_list) + 5)
+    min_x = size[0] // (max_len + 3)
+    start_x = size[0] // 4
+    start_y = size[1] // (len(text_list) + 2)
+
+    fontpath = "font/simsun.ttc"
+    font = ImageFont.truetype(fontpath, min(gap_y, min_x))
+    draw = ImageDraw.Draw(pic)
+    for text in text_list:
+        draw.text((start_x, start_y), text, font=font, fill='red')
+        start_y += gap_y
+
+    return pic
+
 if __name__ == '__main__':
     # onepic = Image.open('wrong_alldet_res/1FA6P8TH3H5785737-vin_android_1646723537172_a748db4f094b4ec0a46cf7d764f9b206.jpg')
     # shape = onepic.size

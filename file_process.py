@@ -1,6 +1,7 @@
 import imghdr
 import json
 import os
+import shutil
 from shutil import copy
 
 import openpyxl
@@ -28,6 +29,7 @@ def get_image_file_list(img_file):
     """
     若该文件路径是一个dir，则获取该路径下的所有image路径
     ，若该文件路径是一个file，则获取该路径表示的image
+    返回的都是list
 
     :param img_file: 文件路径，可以为dir，也可以为file
     :return: 路径下的所有image
@@ -106,8 +108,8 @@ def get_dict_by_excel(excel_path, sheet_name):
 
 
 if __name__ == '__main__':
-    # file_name_list = get_image_path_by_excel('all_det_des\\', 'error.xlsx', 'alldet')
-    # cope_file2dir(file_name_list, 'wrong_alldet')
+    file_name_list = get_image_path_by_excel('all_det_des\\', 'error.xlsx', 'alldet')
+    cope_file2dir(file_name_list, 'wrong_alldet')
     img_dict = get_dict_by_excel('error.xlsx', 'alldet')
     for k, v in img_dict.items():
         pass

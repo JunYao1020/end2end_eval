@@ -5,7 +5,6 @@ from label_process import *
 from scipy import stats
 import numpy as np
 
-
 def eval_pair(pair):
     """
     评估识别结果的precision recall 和 hmean

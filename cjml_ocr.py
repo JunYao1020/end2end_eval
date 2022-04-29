@@ -1,3 +1,5 @@
+import os
+
 from paddleocr import PaddleOCR
 from file_process import *
 from label_process import *
@@ -21,19 +23,25 @@ class CjmlOcr:
                                    rec_char_dict_path=self.rec_char_dict_path, cls_model_dir=self.cls_model_dir,
                                    use_angle_cls=self.use_angle_cls, use_gpu=self.use_gpu)
 
-    def ocr(self, image_dir, use_decode=True):
+    def ocr(self, image_dir, use_decode=True, det=True, cls=True, rec=True):
         """
         识别图片
-        :param image_dir: 待识别的图片目录或单个图片
+        :param det: 是否使用det
+        :param rec: 是否使用rec
+        :param cls: 是否使用cls
+        :param image_dir: 待识别的图片目录或单个图片路径
         :param use_decode: 是否将识别结果过滤，只保留文字信息部分
         :return: 识别结果的字典，key为图片文件名，value为识别结果list
         """
-        image_list = get_image_file_list(image_dir)
         result = {}
+        image_list = get_image_file_list(image_dir)
+
         for image_path in image_list:
-            res = self.ocr_model.ocr(image_path)
-            if use_decode:
+            res = self.ocr_model.ocr(image_path, det=det, rec=rec, cls=cls)
+            if rec and use_decode:
                 res = decode(res)
+            elif rec:
+                res = [line[1][0] for line in res]
             image_name = image_path[image_path.rfind('\\') + 1:]
             result[image_name] = res
         return result
