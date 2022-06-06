@@ -68,13 +68,25 @@ def mark_on_pic_for_struct(text_list, pic):
 
     return pic
 
+
+def separate_img(img):
+    width = img.shape[1]
+    height = img.shape[0]
+    return img[:, 0: width // 2], img[:, width // 2: width]
+
+
 if __name__ == '__main__':
     # onepic = Image.open('wrong_alldet_res/1FA6P8TH3H5785737-vin_android_1646723537172_a748db4f094b4ec0a46cf7d764f9b206.jpg')
     # shape = onepic.size
     # blank_img = generate_blank_image(shape)
     # res = merge_two_pic(onepic, blank_img)
     # cv2.imwrite('merge_res.jpg', res)
-    pass
+    i = cv2.imread("curve_res/crop_des/LFMARE0C680138801-vin_android_1648009546107_88bef58e97d145169a9a63f52302902d.jpg")
+    i_left, i_right = separate_img(i)
+    cv2.imshow('title', i_left)
+    cv2.waitKey(0)
+    cv2.imshow('title', i_right)
+    cv2.waitKey(0)
 
 
 

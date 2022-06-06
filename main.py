@@ -1,3 +1,5 @@
+import multiprocessing
+
 import cv2
 
 from cjml_clas import CjmlClas
@@ -307,41 +309,58 @@ def generate_det_res_add_det_plus(no_clas_dir
         #         and top_2_class // 1000 == 4 \
         #         and abs(top_1_class - top_2_class) > 45 \
         #         and abs(top_1_class - top_2_class) != 315 \
-        #         and (CjmlDetection.category2angle[category_id] % 1000 + top_1_class % 1000) % 360 == top_2_class % 1000:
+        #         and CjmlDetection.category2angle[category_id] % 1000 != 0 \
+        #         and CjmlDetection.category2angle[category_id] % 1000 != 45 \
+        #         and CjmlDetection.category2angle[category_id] % 1000 != 315:
         #     rotated_img_supply, i \
         #         = rotate_image(i, rotate_supply_dir, CjmlDetection.category2angle[category_id] % 1000)
 
-        if top_1_class // 1000 == 4 \
-                and top_2_class // 1000 == 4 \
-                and abs(top_1_class - top_2_class) > 45 \
-                and abs(top_1_class - top_2_class) != 315 \
-                and CjmlDetection.category2angle[category_id] % 1000 != 0 \
-                and CjmlDetection.category2angle[category_id] % 1000 != 45 \
-                and CjmlDetection.category2angle[category_id] % 1000 != 315:
-            rotated_img_supply, i \
-                = rotate_image(i, rotate_supply_dir, CjmlDetection.category2angle[category_id] % 1000)
-
         add_det_all_det_res = list(ocr.ocr(i, rec=False).values())[0]
-        add_det_all_det_angle = gain_angle_by_add_det(add_det_all_det_res)
 
+        flag, add_det_all_det_angle = gain_angle_by_add_det(add_det_all_det_res)
         add_det_img, add_det_img_path = rotate_image(i, add_det_all_dir, add_det_all_det_angle)
+        new_i = crop_dir + i[i.rfind('\\') + 1:]
+        if flag:
+            cv2.imwrite(new_i, add_det_img)
+            continue
         width = cv2.imread(i).shape[1]
         height = cv2.imread(i).shape[0]
         add_det_width = add_det_img.shape[1]
         add_det_height = add_det_img.shape[0]
         crop_len = int(width * math.sin(abs(add_det_all_det_angle) / 180 * math.pi) / 2)
         crop_img = add_det_img[crop_len: add_det_height - crop_len, :]
-        cv2.imwrite(crop_dir + i[i.rfind('\\') + 1:], crop_img)
+        cv2.imwrite(new_i, crop_img)
 
 
-def gain_longest_box(box_list):
-    max_len = 0
-    res = []
+def is_vertical_and_gain_longest_box(box_list):
+    max_x = 0
+    max_y = 0
+    res_x = []
+    res_y = []
+    all_x = 0
+    all_y = 0
     for four_box in box_list:
-        if four_box[1][0] - four_box[0][0] > max_len:
-            max_len = four_box[1][0] - four_box[0][0]
-            res = four_box
-    return res
+        x_length = np.mean([math.dist(four_box[0], four_box[1]), math.dist(four_box[2], four_box[3])])
+        y_length = np.mean([math.dist(four_box[0], four_box[3]), math.dist(four_box[1], four_box[2])])
+        all_x += x_length
+        all_y += y_length
+        if x_length > max_x:
+            max_x = x_length
+            res_x = four_box
+        if y_length > max_y:
+            max_y = y_length
+            res_y = four_box
+
+    return all_y > all_x, res_y, res_x
+
+
+def gain_all_area(box_list):
+    all_x = 0
+    for four_box in box_list:
+        x_length = np.mean([math.dist(four_box[0], four_box[1]), math.dist(four_box[2], four_box[3])])
+        y_length = np.mean([math.dist(four_box[0], four_box[3]), math.dist(four_box[1], four_box[2])])
+        all_x += x_length * y_length
+    return all_x
 
 
 def gain_slope(four_box):
@@ -351,16 +370,23 @@ def gain_slope(four_box):
     return slope
 
 
+def gain_slope_vertical(four_box):
+    slope_one = (four_box[2][1] - four_box[1][1]) / (four_box[2][0] - four_box[1][0] + 0.000001)
+    slope_two = (four_box[3][1] - four_box[0][1]) / (four_box[3][0] - four_box[0][0] + 0.000001)
+    slope = (slope_one + slope_two) / 2
+    return slope
+
+
 def gain_angle_by_slope(slope):
     return math.atan(slope) * 180 / math.pi
 
 
 def gain_angle_by_add_det(box_list):
-    longest_box = gain_longest_box(box_list)
-    if len(longest_box) == 0:
+    flag, longest_y, longest_x = is_vertical_and_gain_longest_box(box_list)
+    if len(longest_y) == 0:
         return 0
-    slope = gain_slope(longest_box)
-    return gain_angle_by_slope(slope)
+    slope = gain_slope_vertical(longest_y) if flag else gain_slope(longest_x)
+    return flag, gain_angle_by_slope(slope)
 
 
 def start_eval():
@@ -391,21 +417,40 @@ def start_eval_add_det():
     # generate_det_res_add_det_plus(no_clas, no_det, add_det_all_det_des, all_det_des, rotate_supply_des, no_right_det_des, crop_des)
     start_ocr_eval_by_image_single(crop_des, 'Label.txt')
 
+def start_eval_add_det_hard():
+    no_clas = 'D:\\wjs\\PycharmProjects\\end2end_eval\\200difficult\\'
+    # no_clas = 'D:\\wjs\\PycharmProjects\\end2end_eval\\test_img\\'
+    # no_clas = 'D:\\wjs\\PycharmProjects\\end2end_eval\\second_1k_supplier\\'
+    no_det = 'D:\\wjs\\PycharmProjects\\end2end_eval\\200difficult_res\\no_det\\'
+    all_det_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\200difficult_res\\all_det_des\\'
+    no_right_det_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\200difficult_res\\no_right_det_des\\'
+    add_det_all_det_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\200difficult_res\\add_det_all_det_des\\'
+    rotate_supply_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\200difficult_res\\rotate_supply_des\\'
+    crop_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\200difficult_res\\crop_des\\'
+    # generate_det_res_add_det_plus(no_clas, no_det, add_det_all_det_des, all_det_des, rotate_supply_des, no_right_det_des, crop_des)
+    start_ocr_eval_by_image_single(crop_des, 'Label_hard.txt')
+
 
 def start_eval_test():
-    no_clas = 'D:\\wjs\\PycharmProjects\\end2end_eval\\test_img\\'
-    no_det = 'D:\\wjs\\PycharmProjects\\end2end_eval\\eval_img_test\\no_det\\'
-    all_det_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\eval_img_test\\all_det_des\\'
-    no_right_det_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\eval_img_test\\no_right_det_des\\'
-    add_det_all_det_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\eval_img_test\\add_det_all_det_des\\'
-    rotate_supply_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\eval_img_test\\rotate_supply_des\\'
-    crop_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\eval_img_test\\crop_des\\'
-    generate_det_res_add_det_plus(no_clas, no_det, add_det_all_det_des, all_det_des, rotate_supply_des, no_right_det_des, crop_des)
+    no_clas = 'D:\\wjs\\PycharmProjects\\end2end_eval\\temp_err\\'
+    # no_clas = 'D:\\wjs\\PycharmProjects\\end2end_eval\\test_img\\'
+    # no_clas = 'D:\\wjs\\PycharmProjects\\end2end_eval\\second_1k_supplier\\'
+    no_det = 'D:\\wjs\\PycharmProjects\\end2end_eval\\temp_err\\no_det\\'
+    all_det_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\temp_err\\all_det_des\\'
+    no_right_det_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\temp_err\\no_right_det_des\\'
+    add_det_all_det_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\temp_err\\add_det_all_det_des\\'
+    rotate_supply_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\temp_err\\rotate_supply_des\\'
+    crop_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\temp_err\\crop_des\\'
+    generate_det_res_add_det_plus(no_clas, no_det, add_det_all_det_des, all_det_des
+                                  , rotate_supply_des, no_right_det_des, crop_des)
+    # start_ocr_eval_by_image_single(crop_des, 'Label_hard.txt')
 
 
 if __name__ == '__main__':
-    start_eval_add_det()
-    # start_eval()
-    # start_eval_test()
+    # start_eval_add_det()
+    # start_eval_add_det_hard()
+    start_eval_test()
+
+    # print(multiprocessing.cpu_count())
 
 
