@@ -1,15 +1,24 @@
 import os.path
 import shutil
 
-from cjml_clas import CjmlClas
+from paddle4cjml.cjml_clas import CjmlClas
 from file_process import get_image_file_list
 
 
 class DataClean:
+    """
+    数据清洗
+    """
     def __init__(self, predictor):
         self.predictor = predictor
 
     def clean_clas(self, dir_path, stable_res):
+        """
+        清洗错误分类的数据，错误的数据将被移至新文件夹
+        :param dir_path: 待清洗的目录
+        :param stable_res: 期望该目录的分类结果
+        :return:
+        """
         image_path_list = get_image_file_list(dir_path)
         error_dir_path = dir_path + '_error'
         if not os.path.exists(error_dir_path):
@@ -19,6 +28,11 @@ class DataClean:
             shutil.move(e, error_dir_path)
 
     def auto_clas(self, dir_path):
+        """
+        对一个文件夹下的所有图片进行自动分类
+        :param dir_path: 待分类的文件夹
+        :return:
+        """
         image_path_list = get_image_file_list(dir_path)
         for i in image_path_list:
             clas_res = self.predictor.get_image_class(i)
@@ -39,5 +53,5 @@ def clean():
 if __name__ == '__main__':
     clas = CjmlClas()
     data_clean = DataClean(clas)
-    data_clean.auto_clas(r'C:\Users\wujs.YANGCHE\Desktop\clas_error')
+    data_clean.auto_clas(r'D:\scan_vin_imgs')
     # clean()

@@ -1,11 +1,10 @@
-import multiprocessing
+from functools import partial
 
-import cv2
-
-from cjml_clas import CjmlClas
-from cjml_detection import CjmlDetection
-from cjml_ocr import *
+from paddle4cjml.cjml_clas import CjmlClas
+from paddle4cjml.cjml_detection import CjmlDetection
+from paddle4cjml.cjml_ocr import *
 from evaluation import *
+from fetch_data_from_db import parallel_process
 from file_process import *
 from rotate_image import *
 import math
@@ -18,6 +17,11 @@ rec_char_dict_path = 'dict/ppocr_keys_v1.txt'
 
 
 def fetch_label_text_content(label_path):
+    """
+    获取文本文件中的标注内容
+    :param label_path: 待处理的文本文件
+    :return:
+    """
     standard_label = {}
     with open(label_path, encoding='utf-8') as lines:
         for line in lines:
@@ -91,166 +95,7 @@ def start_ocr_eval_by_predict_label(predict_slope_path, predict_all_path, label_
     print(res_slope_score, res_all_score)
 
 
-def generate_det_res(no_clas_dir='D:\\0310_no_clas\\'
-                     , no_det_dir='D:\\0310_no_det\\'
-                     , det_des_dir='D:\\0310_det\\'
-                     , all_det_des_dir='D:\\0310_all_det\\'
-                     , no_right_det_dir='D:\\no_right_det_dir\\'
-                     ):
-    if not os.path.exists(no_det_dir):
-        os.makedirs(no_det_dir)
-    if not os.path.exists(det_des_dir):
-        os.makedirs(det_des_dir)
-    if not os.path.exists(all_det_des_dir):
-        os.makedirs(all_det_des_dir)
-    if not os.path.exists(no_right_det_dir):
-        os.makedirs(no_right_det_dir)
-
-    image_path_list = get_image_file_list(no_clas_dir)
-    det = CjmlDetection()
-    clas = CjmlClas()
-
-    for i in image_path_list:
-        if i[-5: -4] == '本':
-            continue
-        class_id = clas.get_image_class(i)
-        angle = class_id % 1000
-        rotated_img, rotated_img_path = rotate_image(i, no_det_dir, angle)
-
-        if angle % 10 != 0:
-            location = det.get_location(rotated_img_path)
-            location = [int(f) for f in location]
-            det_img = rotated_img[location[1]: location[1] + location[3], location[0]: location[0] + location[2]]
-            cv2.imwrite(det_des_dir + i[i.rfind('\\') + 1:], det_img)
-            cv2.imwrite(all_det_des_dir + i[i.rfind('\\') + 1:], det_img)
-        else:
-            rotated_right_img, rotated_right_img_path = rotate_right_image(rotated_img_path, no_right_det_dir)
-            location = det.get_location(rotated_right_img_path)
-            location = [int(f) for f in location]
-            det_right_img = rotated_right_img[location[1]: location[1] + location[3],
-                                              location[0]: location[0] + location[2]]
-            cv2.imwrite(all_det_des_dir + i[i.rfind('\\') + 1:], det_right_img)
-
-            cv2.imwrite(det_des_dir + i[i.rfind('\\') + 1:], rotated_img)
-
-
-def generate_det_res_new(no_clas_dir='D:\\0310_no_clas\\'
-                         , no_det_dir='D:\\0310_no_det\\'
-                         , det_des_dir='D:\\0310_det\\'
-                         , all_det_des_dir='D:\\0310_all_det\\'
-                         , no_right_det_dir='D:\\no_right_det_dir\\'
-                         , threshold=0.001
-                         ):
-    if not os.path.exists(no_det_dir):
-        os.makedirs(no_det_dir)
-    if not os.path.exists(det_des_dir):
-        os.makedirs(det_des_dir)
-    if not os.path.exists(all_det_des_dir):
-        os.makedirs(all_det_des_dir)
-    if not os.path.exists(no_right_det_dir):
-        os.makedirs(no_right_det_dir)
-
-    image_path_list = get_image_file_list(no_clas_dir)
-    det = CjmlDetection()
-    clas = CjmlClas(top_k=2)
-
-    for i in image_path_list:
-        if i[-5: -4] == '本':
-            continue
-        class_and_score_res_list = clas.get_image_top2_class_and_score(i)
-        top_1_class = class_and_score_res_list[0][0]
-        top_2_class = class_and_score_res_list[0][1]
-        top_1_score = class_and_score_res_list[1][0]
-        top_2_score = class_and_score_res_list[1][1]
-
-        angle = top_1_class % 1000
-        if top_2_class // 1000 == 4 and top_2_score > threshold:
-            if abs(top_1_class - top_2_class) == 45:
-                angle = angle + (top_2_class - top_1_class) * max((1.2 - top_1_score), 0.5)
-            elif abs(top_1_class - top_2_class) == 315:
-                angle = angle + 45 * max((1.2 - top_1_score), 0.5)
-
-        rotated_img, rotated_img_path = rotate_image(i, no_det_dir, angle)
-
-        if angle % 10 != 0:
-            location = det.get_location(rotated_img_path)
-            location = [int(f) for f in location]
-            det_img = rotated_img[location[1]: location[1] + location[3], location[0]: location[0] + location[2]]
-            cv2.imwrite(det_des_dir + i[i.rfind('\\') + 1:], det_img)
-            cv2.imwrite(all_det_des_dir + i[i.rfind('\\') + 1:], det_img)
-        else:
-            rotated_right_img, rotated_right_img_path = rotate_right_image(rotated_img_path, no_right_det_dir)
-            location = det.get_location(rotated_right_img_path)
-            location = [int(f) for f in location]
-            det_right_img = rotated_right_img[location[1]: location[1] + location[3],
-                                              location[0]: location[0] + location[2]]
-            cv2.imwrite(all_det_des_dir + i[i.rfind('\\') + 1:], det_right_img)
-
-            cv2.imwrite(det_des_dir + i[i.rfind('\\') + 1:], rotated_img)
-
-
-def generate_det_res_add_det(no_clas_dir='D:\\0310_no_clas\\'
-                             , no_det_dir='D:\\0310_no_det\\'
-                             , add_det_all_dir='D:\\0310_no_det\\'
-                             , add_det_slope_dir='D:\\0310_no_det\\'
-                             , det_des_dir='D:\\0310_det\\'
-                             , all_det_des_dir='D:\\0310_all_det\\'
-                             , no_right_det_dir='D:\\no_right_det_dir\\'
-                             ):
-    if not os.path.exists(no_det_dir):
-        os.makedirs(no_det_dir)
-    if not os.path.exists(det_des_dir):
-        os.makedirs(det_des_dir)
-    if not os.path.exists(all_det_des_dir):
-        os.makedirs(all_det_des_dir)
-    if not os.path.exists(no_right_det_dir):
-        os.makedirs(no_right_det_dir)
-    if not os.path.exists(add_det_all_dir):
-        os.makedirs(add_det_all_dir)
-    if not os.path.exists(add_det_slope_dir):
-        os.makedirs(add_det_slope_dir)
-
-    image_path_list = get_image_file_list(no_clas_dir)
-    det = CjmlDetection()
-    clas = CjmlClas()
-
-    model_args = {'det_model_dir': det_model_dir, 'rec_model_dir': rec_model_dir
-                  , 'cls_model_dir': cls_model_dir, 'rec_char_dict_path': rec_char_dict_path}
-    ocr = CjmlOcr(model_args)
-
-    for i in image_path_list:
-        if i[-5: -4] == '本':
-            continue
-        class_id = clas.get_image_class(i)
-        angle = class_id % 1000
-        rotated_img, rotated_img_path = rotate_image(i, no_det_dir, angle)
-
-        if angle % 10 != 0:
-            location = det.get_location(rotated_img_path)
-            location = [int(f) for f in location]
-            det_img = rotated_img[location[1]: location[1] + location[3], location[0]: location[0] + location[2]]
-            cv2.imwrite(det_des_dir + i[i.rfind('\\') + 1:], det_img)
-            cv2.imwrite(all_det_des_dir + i[i.rfind('\\') + 1:], det_img)
-        else:
-            rotated_right_img, rotated_right_img_path = rotate_right_image(rotated_img_path, no_right_det_dir)
-            location = det.get_location(rotated_right_img_path)
-            location = [int(f) for f in location]
-            det_right_img = rotated_right_img[location[1]: location[1] + location[3],
-                                              location[0]: location[0] + location[2]]
-            cv2.imwrite(all_det_des_dir + i[i.rfind('\\') + 1:], det_right_img)
-
-            cv2.imwrite(det_des_dir + i[i.rfind('\\') + 1:], rotated_img)
-
-
-        add_det_all_det_res = list(ocr.ocr(all_det_des_dir + i[i.rfind('\\') + 1:], rec=False).values())[0]
-        add_det_slope_det_res = list(ocr.ocr(det_des_dir + i[i.rfind('\\') + 1:], rec=False).values())[0]
-        add_det_all_det_angle = gain_angle_by_add_det(add_det_all_det_res)
-        add_det_slope_det_angle = gain_angle_by_add_det(add_det_slope_det_res)
-        rotate_image(all_det_des_dir + i[i.rfind('\\') + 1:], add_det_all_dir, add_det_all_det_angle)
-        rotate_image(det_des_dir + i[i.rfind('\\') + 1:], add_det_slope_dir, add_det_slope_det_angle)
-
-
-def generate_det_res_add_det_plus(no_clas_dir
+def generate_det_res_add_det(no_clas_dir
                                   , no_det_dir
                                   , add_det_all_dir
                                   , all_det_des_dir
@@ -285,11 +130,9 @@ def generate_det_res_add_det_plus(no_clas_dir
             continue
         class_and_score_res_list = clas.get_image_top2_class_and_score(i)
         top_1_class = class_and_score_res_list[0][0]
-        top_2_class = class_and_score_res_list[0][1]
 
         angle = top_1_class % 1000
         rotated_img, rotated_img_path = rotate_image(i, no_det_dir, angle)
-        category_id = 0
         if angle % 10 != 0:
             location, category_id = det.get_location_and_category_id(rotated_img_path)
             location = [int(f) for f in location]
@@ -300,20 +143,10 @@ def generate_det_res_add_det_plus(no_clas_dir
             location, category_id = det.get_location_and_category_id(rotated_right_img_path)
             location = [int(f) for f in location]
             det_right_img = rotated_right_img[location[1]: location[1] + location[3],
-                                              location[0]: location[0] + location[2]]
+                            location[0]: location[0] + location[2]]
             cv2.imwrite(all_det_des_dir + i[i.rfind('\\') + 1:], det_right_img)
 
         i = all_det_des_dir + i[i.rfind('\\') + 1:]
-
-        # if top_1_class // 1000 == 4 \
-        #         and top_2_class // 1000 == 4 \
-        #         and abs(top_1_class - top_2_class) > 45 \
-        #         and abs(top_1_class - top_2_class) != 315 \
-        #         and CjmlDetection.category2angle[category_id] % 1000 != 0 \
-        #         and CjmlDetection.category2angle[category_id] % 1000 != 45 \
-        #         and CjmlDetection.category2angle[category_id] % 1000 != 315:
-        #     rotated_img_supply, i \
-        #         = rotate_image(i, rotate_supply_dir, CjmlDetection.category2angle[category_id] % 1000)
 
         add_det_all_det_res = list(ocr.ocr(i, rec=False).values())[0]
 
@@ -324,15 +157,90 @@ def generate_det_res_add_det_plus(no_clas_dir
             cv2.imwrite(new_i, add_det_img)
             continue
         width = cv2.imread(i).shape[1]
-        height = cv2.imread(i).shape[0]
-        add_det_width = add_det_img.shape[1]
         add_det_height = add_det_img.shape[0]
         crop_len = int(width * math.sin(abs(add_det_all_det_angle) / 180 * math.pi) / 2)
         crop_img = add_det_img[crop_len: add_det_height - crop_len, :]
         cv2.imwrite(new_i, crop_img)
 
 
+def generate_det_res_add_det_plus(no_clas_dir
+                                  , no_det_dir
+                                  , add_det_all_dir
+                                  , all_det_des_dir
+                                  , rotate_supply_dir
+                                  , no_right_det_dir
+                                  , crop_dir
+                                  ):
+
+    if not os.path.exists(no_det_dir):
+        os.makedirs(no_det_dir)
+    if not os.path.exists(rotate_supply_dir):
+        os.makedirs(rotate_supply_dir)
+    if not os.path.exists(all_det_des_dir):
+        os.makedirs(all_det_des_dir)
+    if not os.path.exists(no_right_det_dir):
+        os.makedirs(no_right_det_dir)
+    if not os.path.exists(add_det_all_dir):
+        os.makedirs(add_det_all_dir)
+    if not os.path.exists(crop_dir):
+        os.makedirs(crop_dir)
+
+    image_path_list = get_image_file_list(no_clas_dir)
+    det = CjmlDetection()
+    clas = CjmlClas(top_k=2)
+
+    model_args = {'det_model_dir': det_model_dir, 'rec_model_dir': rec_model_dir
+                  , 'cls_model_dir': cls_model_dir, 'rec_char_dict_path': rec_char_dict_path}
+    ocr = CjmlOcr(model_args)
+
+    pfunc = partial(process_generate_det_res_add_det_plus, ocr, clas, det, no_det_dir, all_det_des_dir, no_right_det_dir, add_det_all_dir, crop_dir)
+    parallel_process(pfunc, image_path_list)
+
+
+def process_generate_det_res_add_det_plus(ocr, clas, det, no_det_dir, all_det_des_dir, no_right_det_dir, add_det_all_dir, crop_dir, i):
+    if i[-5: -4] == '本':
+        return
+    class_and_score_res_list = clas.get_image_top2_class_and_score(i)
+    top_1_class = class_and_score_res_list[0][0]
+
+    angle = top_1_class % 1000
+    rotated_img, rotated_img_path = rotate_image(i, no_det_dir, angle)
+    if angle % 10 != 0:
+        location, category_id = det.get_location_and_category_id(rotated_img_path)
+        location = [int(f) for f in location]
+        det_img = rotated_img[location[1]: location[1] + location[3], location[0]: location[0] + location[2]]
+        cv2.imwrite(all_det_des_dir + i[i.rfind('\\') + 1:], det_img)
+    else:
+        rotated_right_img, rotated_right_img_path = rotate_right_image(rotated_img_path, no_right_det_dir)
+        location, category_id = det.get_location_and_category_id(rotated_right_img_path)
+        location = [int(f) for f in location]
+        det_right_img = rotated_right_img[location[1]: location[1] + location[3],
+                        location[0]: location[0] + location[2]]
+        cv2.imwrite(all_det_des_dir + i[i.rfind('\\') + 1:], det_right_img)
+
+    i = all_det_des_dir + i[i.rfind('\\') + 1:]
+
+    add_det_all_det_res = list(ocr.ocr(i, rec=False).values())[0]
+
+    flag, add_det_all_det_angle = gain_angle_by_add_det(add_det_all_det_res)
+    add_det_img, add_det_img_path = rotate_image(i, add_det_all_dir, add_det_all_det_angle)
+    new_i = crop_dir + i[i.rfind('\\') + 1:]
+    if flag:
+        cv2.imwrite(new_i, add_det_img)
+        return
+    width = cv2.imread(i).shape[1]
+    add_det_height = add_det_img.shape[0]
+    crop_len = int(width * math.sin(abs(add_det_all_det_angle) / 180 * math.pi) / 2)
+    crop_img = add_det_img[crop_len: add_det_height - crop_len, :]
+    cv2.imwrite(new_i, crop_img)
+
+
 def is_vertical_and_gain_longest_box(box_list):
+    """
+    判断这个box_list中的检测框是否是近似竖直的，并且返回长度最长的那个检测框
+    :param box_list: 待处理的检测框集合
+    :return: 检测框是否垂直，最长的检测框
+    """
     max_x = 0
     max_y = 0
     res_x = []
@@ -355,6 +263,11 @@ def is_vertical_and_gain_longest_box(box_list):
 
 
 def gain_all_area(box_list):
+    """
+    获取所有检测框的检测面积
+    :param box_list: 所有检测框集合
+    :return:
+    """
     all_x = 0
     for four_box in box_list:
         x_length = np.mean([math.dist(four_box[0], four_box[1]), math.dist(four_box[2], four_box[3])])
@@ -364,6 +277,11 @@ def gain_all_area(box_list):
 
 
 def gain_slope(four_box):
+    """
+    获取检测框的斜率
+    :param four_box: 单个检测框
+    :return: 该检测框斜率
+    """
     slope_one = (four_box[1][1] - four_box[0][1]) / (four_box[1][0] - four_box[0][0])
     slope_two = (four_box[2][1] - four_box[3][1]) / (four_box[2][0] - four_box[3][0])
     slope = (slope_one + slope_two) / 2
@@ -371,6 +289,11 @@ def gain_slope(four_box):
 
 
 def gain_slope_vertical(four_box):
+    """
+    获取垂直检测框斜率
+    :param four_box: 单个检测框
+    :return: 该检测框垂直斜率
+    """
     slope_one = (four_box[2][1] - four_box[1][1]) / (four_box[2][0] - four_box[1][0] + 0.000001)
     slope_two = (four_box[3][1] - four_box[0][1]) / (four_box[3][0] - four_box[0][0] + 0.000001)
     slope = (slope_one + slope_two) / 2
@@ -378,13 +301,23 @@ def gain_slope_vertical(four_box):
 
 
 def gain_angle_by_slope(slope):
+    """
+    根据斜率获取角度
+    :param slope: 斜率
+    :return: 该斜率对应角度
+    """
     return math.atan(slope) * 180 / math.pi
 
 
 def gain_angle_by_add_det(box_list):
+    """
+    根据检测框集合获取旋转角度
+    :param box_list: 检测框集合
+    :return: 是否垂直检测框，旋转角度
+    """
     flag, longest_y, longest_x = is_vertical_and_gain_longest_box(box_list)
     if len(longest_y) == 0:
-        return 0
+        return False, 0
     slope = gain_slope_vertical(longest_y) if flag else gain_slope(longest_x)
     return flag, gain_angle_by_slope(slope)
 
@@ -432,6 +365,20 @@ def start_eval_add_det_hard():
 
 
 def start_eval_test():
+    no_clas = 'D:\\wjs\\PycharmProjects\\end2end_eval\\parallel_failed\\'
+    # no_clas = 'D:\\wjs\\PycharmProjects\\end2end_eval\\test_img\\'
+    # no_clas = 'D:\\wjs\\PycharmProjects\\end2end_eval\\second_1k_supplier\\'
+    no_det = 'D:\\wjs\\PycharmProjects\\end2end_eval\\parallel_failed\\no_det\\'
+    all_det_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\parallel_failed\\all_det_des\\'
+    no_right_det_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\parallel_failed\\no_right_det_des\\'
+    add_det_all_det_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\parallel_failed\\add_det_all_det_des\\'
+    rotate_supply_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\parallel_failed\\rotate_supply_des\\'
+    crop_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\parallel_failed\\crop_des\\'
+    generate_det_res_add_det(no_clas, no_det, add_det_all_det_des, all_det_des
+                                  , rotate_supply_des, no_right_det_des, crop_des)
+
+
+def start_eval_test_err():
     no_clas = 'D:\\wjs\\PycharmProjects\\end2end_eval\\temp_err\\'
     # no_clas = 'D:\\wjs\\PycharmProjects\\end2end_eval\\test_img\\'
     # no_clas = 'D:\\wjs\\PycharmProjects\\end2end_eval\\second_1k_supplier\\'
@@ -441,15 +388,15 @@ def start_eval_test():
     add_det_all_det_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\temp_err\\add_det_all_det_des\\'
     rotate_supply_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\temp_err\\rotate_supply_des\\'
     crop_des = 'D:\\wjs\\PycharmProjects\\end2end_eval\\temp_err\\crop_des\\'
-    generate_det_res_add_det_plus(no_clas, no_det, add_det_all_det_des, all_det_des
+    generate_det_res_add_det(no_clas, no_det, add_det_all_det_des, all_det_des
                                   , rotate_supply_des, no_right_det_des, crop_des)
-    # start_ocr_eval_by_image_single(crop_des, 'Label_hard.txt')
 
 
 if __name__ == '__main__':
     # start_eval_add_det()
     # start_eval_add_det_hard()
-    start_eval_test()
+    # start_eval_test()
+    start_eval_test_err()
 
     # print(multiprocessing.cpu_count())
 

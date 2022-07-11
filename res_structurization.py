@@ -1,7 +1,5 @@
-from cjml_ocr import CjmlOcr
 from file_process import *
 from label_process import separate_eng_ch, separate_ch_eng_single, is_vin_then_get_vin, is_chinese, filter_processed_res
-from main import fetch_label_text_content
 
 det_model_dir = 'infer_first_1k_it6/det'
 rec_model_dir = 'infer_first_1k_it6/rec'

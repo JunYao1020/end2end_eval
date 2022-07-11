@@ -5,12 +5,18 @@ from PIL import Image, ImageFont, ImageDraw
 
 
 def download_img(des_path, url):
-    image_name = url[url.rfind('/') + 1:]
-    r = requests.get(url, stream=True)
-    if r.status_code == 200:
-        open(des_path + image_name, 'wb').write(r.content)
-    else:
-        print('图片下载失败')
+    try:
+        image_name = url[url.rfind('/') + 1:]
+        r = requests.get(url, stream=True)
+        if r.status_code == 200:
+            open(des_path + image_name, 'wb').write(r.content)
+            return des_path + image_name
+        else:
+            print('图片下载失败')
+    except Exception as e:
+        print("error ----------> ", e)
+        return
+
 
 
 def generate_blank_image(size):
@@ -42,6 +48,25 @@ def mark_on_pic(text_list, pic):
         draw.text((gap_x, start_y), text[1], font=font, fill='red')
         start_y += gap_y
 
+    return pic
+
+
+def mark_on_pic4vin(text_list, pic):
+    max_len = 0
+    for s in text_list:
+        if len(s) > max_len:
+            max_len = len(s)
+
+    size = pic.size
+    gap_y = size[1] // 4
+    min_x = size[0] // 2 // max_len
+    start_y = size[1] // 4
+
+    fontpath = "font/simsun.ttc"
+    font = ImageFont.truetype(fontpath, min(gap_y, min_x))
+    draw = ImageDraw.Draw(pic)
+    draw.text((0, start_y), text_list[0], font=font, fill='blue')
+    draw.text((0, start_y + gap_y), text_list[1], font=font, fill='red')
     return pic
 
 
@@ -81,12 +106,7 @@ if __name__ == '__main__':
     # blank_img = generate_blank_image(shape)
     # res = merge_two_pic(onepic, blank_img)
     # cv2.imwrite('merge_res.jpg', res)
-    i = cv2.imread("curve_res/crop_des/LFMARE0C680138801-vin_android_1648009546107_88bef58e97d145169a9a63f52302902d.jpg")
-    i_left, i_right = separate_img(i)
-    cv2.imshow('title', i_left)
-    cv2.waitKey(0)
-    cv2.imshow('title', i_right)
-    cv2.waitKey(0)
+    download_img("parallel_clas/", "http://192.168.88.6:9000/vin-plates/20220623/LGWED2A35DE049807-vin_android_1655940172352_ffb9c75ec4504b3b9119d73f6cb7c028.jpg")
 
 
 
