@@ -91,6 +91,7 @@ def es_go(es_url, es_auth, index, st, et):
 
     return [x["_source"]["OrignalImage"] for x in results]
 
+
 def es_go_vin_image_url(es_url, es_auth, index, st, et):
     es = Elasticsearch(hosts=es_url, http_auth=es_auth)
     st = st.isoformat(sep='T', timespec='microseconds') + '+08:00'

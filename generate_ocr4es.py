@@ -10,7 +10,7 @@ cls_model_dir = 'ocr_infer/cls'
 rec_char_dict_path = 'dict/ppocr_keys_v1.txt'
 
 
-def cjml_demo(image_dir):
+def cjml_ocr_pdf(image_dir):
     model_args = {'det_model_dir': det_model_dir, 'rec_model_dir': rec_model_dir
         , 'cls_model_dir': cls_model_dir, 'rec_char_dict_path': rec_char_dict_path}
     ocr = CjmlOcr(model_args)
@@ -31,7 +31,7 @@ def check_contain_ch_and_eng(check_str):
 
 
 def insert2es(image_dir):
-    res = cjml_demo(image_dir)
+    res = cjml_ocr_pdf(image_dir)
     url = "http://es-cn-tl32ljolq000ewdl0.public.elasticsearch.aliyuncs.com:9200"
     auth = ('wujs', 'Wujs!2022')
     idx = "book_ocr_detail"
@@ -88,11 +88,7 @@ def gain_page(page_content):
     raise Exception('gain page num error!!!')
 
 
-if __name__ == '__main__':
-    # cjml_dir = "temp_cjml_demo"
-    # cjml_demo(cjml_dir)
-    # fail = insert2es("ocr4nlp_img/吉利缤瑞电路图")
-    # fail = insert2es("temp_cjml_demo")
+def supply_page_inner(page_outer, page_inner):
     url = "http://es-cn-tl32ljolq000ewdl0.public.elasticsearch.aliyuncs.com:9200防止误点"
     auth = ('wujs', 'Wujs!2022')
     idx = "book_ocr_detail"
@@ -103,7 +99,7 @@ if __name__ == '__main__':
                 "must": [
                     {
                         "term": {
-                            "page_outer": 9
+                            "page_outer": page_outer
                         }
                     },
                     {
@@ -117,9 +113,19 @@ if __name__ == '__main__':
         "script": {
             "inline": "ctx._source.page_inner = params.page_inner",
             "params": {
-                "page_inner": "7"
+                "page_inner": page_inner
             },
             "lang": "painless"
         }
     }
     es.update_by_query(index=idx, body=body)
+
+
+if __name__ == '__main__':
+    # cjml_dir = "temp_cjml_demo"
+    # cjml_ocr_pdf(cjml_dir)
+    fail = insert2es("ocr4nlp_img/吉利缤瑞电路图")
+    fail = insert2es("temp_cjml_demo")
+
+
+

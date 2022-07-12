@@ -129,5 +129,4 @@ if __name__ == '__main__':
     # end_time = start_time + timedelta(days=2)
     # es_go(start_time, end_time)
     # ocr_predict('./16LJ9L099V4ZE3815-vin_android_1651717826574_cd76778db2a448e6b4e3513da50d291c.jpg')
-
     a_te()
