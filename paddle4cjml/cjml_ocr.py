@@ -1,8 +1,7 @@
-import os
-
 from paddleocr import PaddleOCR
-from file_process import *
-from label_process import *
+
+from cjml_utils.file_util import get_image_file_list
+from cjml_utils.label_util import *
 
 
 class CjmlOcr:

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from paddle4cjml.cjml_clas import CjmlClas
 from elasticsearch import Elasticsearch
 
-from img import download_img
+from cjml_utils.img_util import download_img
 
 cls = {
     1000: 0,

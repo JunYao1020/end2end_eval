@@ -3,7 +3,7 @@ import os
 
 import pymysql
 
-from img import download_img
+from cjml_utils.img_util import download_img
 
 conn = pymysql.connect(
     host='192.168.60.30',

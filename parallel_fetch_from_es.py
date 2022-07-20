@@ -1,17 +1,13 @@
-import base64
-import json
 import os
 import shutil
 from datetime import datetime, timedelta
 from functools import partial
 
-import requests
-
-from file_process import write_str_list_to_txt, get_image_file_list
+from file_process import write_str_list_to_txt
 from paddle4cjml.cjml_clas import CjmlClas
 from elasticsearch import Elasticsearch
 import multiprocessing.dummy as parallel
-from img import download_img
+from cjml_utils.img_util import download_img
 
 cls = {
     1000: 0,
