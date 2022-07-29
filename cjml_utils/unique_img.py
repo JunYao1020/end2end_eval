@@ -42,5 +42,5 @@ def unique(files_path):
 
 
 if __name__ == '__main__':
-    img_dir = r"D:\vin_img4label"
+    img_dir = r"D:\whole_diff_vin"
     unique(img_dir)

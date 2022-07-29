@@ -32,7 +32,7 @@ def check_contain_ch_and_eng(check_str):
 
 def insert2es(image_dir):
     res = cjml_ocr_pdf(image_dir)
-    url = "http://es-cn-tl32ljolq000ewdl0.public.elasticsearch.aliyuncs.com:9200"
+    url = "http://192.168.100.166:9200/"
     auth = ('wanghb', 'RCqjZnxK')
     idx = "ocr_test"
     es = Elasticsearch(hosts=url, http_auth=auth)
@@ -73,7 +73,8 @@ def insert2es(image_dir):
                 "chapter": k[:k.rfind('_')],
                 "page_content": page_content,
                 "page_inner": page_inner,
-                "page_outer": int(page_outer)
+                "page_outer": int(page_outer),
+                "title": k[:k.rfind('_')]
             }
         })
     helpers.bulk(es, action)
@@ -141,7 +142,7 @@ if __name__ == '__main__':
     # cjml_dir = "temp_cjml_demo"
     # cjml_ocr_pdf(cjml_dir)
     # C:\Users\wanghb\Desktop\doc\维修手册\吉利缤瑞2020款维修手册
-    fail = insert2es("pic/ocr4nlp_img/吉利缤瑞2020款维修手册")
+    fail = insert2es("pic/ocr4nlp_img/吉利缤瑞电路图")
     for x in fail:
         print(x)
     # fail = insert2es("C:/Users/wanghb/Desktop/doc/维修手册/吉利缤瑞电路图")

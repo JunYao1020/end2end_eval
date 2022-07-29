@@ -278,8 +278,8 @@ def start_eval_test_err():
 
 
 if __name__ == '__main__':
-    # start_eval_add_det()
-    start_eval_add_det_hard()
+    start_eval_add_det()
+    # start_eval_add_det_hard()
     # start_eval_test()
     # start_eval_test_err()
 

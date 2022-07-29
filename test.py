@@ -1,13 +1,17 @@
 import base64
-import os
-import time
-
-import requests
 import json
-from datetime import datetime, timedelta
+import re
+import shutil
 import threading
+import time
+import urllib
+from datetime import datetime, timedelta
 
+import cv2
+import requests
+import urllib3
 
+from cjml_utils.file_util import get_image_file_list
 
 
 def es_go(start_time, end_time):
@@ -123,10 +127,32 @@ def a_te():
     print(et)
 
 
+def horizontal_vertical_depart(src_dir, des_dir):
+    image_path_list = get_image_file_list(src_dir)
+    for i in image_path_list:
+        im = cv2.imread(i)
+        h, w, _ = im.shape
+        if h > w:
+            shutil.move(i, des_dir)
+
+
+def iurl():
+    uuu = "http://192.168.100.117:9999/20210415/"
+    httpx = urllib3.PoolManager()
+    res = httpx.urlopen("GET", uuu)
+    # res = requests.get(uuu)
+
+    print(res.data.decode())
+    subUrls = re.findall(r'<a.*?href=".*?">(.*?)</a>', res.data.decode())
+    print(subUrls)
+
+
 if __name__ == '__main__':
     # today = datetime.today()
     # start_time = datetime(today.year, today.month, today.day)
     # end_time = start_time + timedelta(days=2)
     # es_go(start_time, end_time)
     # ocr_predict('./16LJ9L099V4ZE3815-vin_android_1651717826574_cd76778db2a448e6b4e3513da50d291c.jpg')
-    a_te()
+    # a_te()
+    # horizontal_vertical_depart(r"D:\wjs\vin_clas_data_set\3000", r"D:\wjs\vin_clas_data_set\3180")
+    iurl()

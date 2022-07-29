@@ -47,6 +47,17 @@ def start_diff_vin(img_dir, res_txt_path, diff_im_dir):
     visual_diff_vin(txt_path=res_txt_path, save_dir=diff_im_dir)
 
 
+def vin_ocr_res(img_dir):
+    model_args = {'det_model_dir': det_model_dir, 'rec_model_dir': rec_model_dir
+        , 'cls_model_dir': cls_model_dir, 'rec_char_dict_path': rec_char_dict_path}
+
+    ocr = CjmlOcr(model_args)
+
+    ocr_res = ocr.ocr(img_dir)
+
+    print(ocr_res)
+
+
 def generate_vin_pre_process(origin_dir, pre_det_dir, des_dir):
     if not os.path.exists(pre_det_dir):
         os.makedirs(pre_det_dir)
@@ -86,15 +97,40 @@ def generate_vin_pre_process(origin_dir, pre_det_dir, des_dir):
         cv2.imwrite(new_i, im)
 
 
-def start_eval_add_det():
-    origin_dir = 'D:\\wjs\\PycharmProjects\\end2end_eval\\pic\\eval_vin_ocr\\'
-    pre_det_dir = 'D:\\wjs\\PycharmProjects\\end2end_eval\\pic\\eval_vin_ocr_res\\pre_det_dir\\'
-    des_dir = 'D:\\wjs\\PycharmProjects\\end2end_eval\\pic\\eval_vin_ocr_res\\des_dir\\'
-    # generate_vin_pre_process(origin_dir, pre_det_dir, des_dir)
-    diff_txt_path = 'diff_txt_vin_3.txt'
-    diff_img_dir = 'pic/vis_diff_vin_3/'
+def start_eval_add_det_num(num):
+    origin_dir = 'D:\\wjs\\PycharmProjects\\end2end_eval\\pic\\vin_' + num + '\\'
+    pre_det_dir = 'D:\\wjs\\PycharmProjects\\end2end_eval\\pic\\eval_vin_' + num + '\\pre_det_dir\\'
+    des_dir = 'D:\\wjs\\PycharmProjects\\end2end_eval\\pic\\eval_vin_' + num + '\\des_dir\\'
+    generate_vin_pre_process(origin_dir, pre_det_dir, des_dir)
+    diff_txt_path = 'diff_txt_vin_' + num + '.txt'
+    diff_img_dir = 'pic/vis_diff_vin_' + num + '/'
     start_diff_vin(des_dir, diff_txt_path, diff_img_dir)
 
 
+def start_eval_add_det():
+    origin_dir = 'D:\\wjs\\PycharmProjects\\end2end_eval\\pic\\vin_img4label3\\'
+    pre_det_dir = 'D:\\wjs\\PycharmProjects\\end2end_eval\\pic\\eval_label3\\pre_det_dir\\'
+    des_dir = 'D:\\wjs\\PycharmProjects\\end2end_eval\\pic\\eval_label3\\des_dir\\'
+    generate_vin_pre_process(origin_dir, pre_det_dir, des_dir)
+    diff_txt_path = 'diff_txt_only_vin.txt'
+    diff_img_dir = 'pic/diff_txt_only_vin/'
+    # start_diff_vin(des_dir, diff_txt_path, diff_img_dir)
+
+
+def start_eval_temp_err():
+    origin_dir = '.\\pic\\temp_err\\'
+    pre_det_dir = '.\\pic\\eval_temp_err\\pre_det_dir\\'
+    des_dir = '.\\pic\\eval_temp_err\\des_dir\\'
+    generate_vin_pre_process(origin_dir, pre_det_dir, des_dir)
+    diff_txt_path = 'diff_txt_only_vin.txt'
+    diff_img_dir = 'pic/diff_txt_only_vin/'
+    # start_diff_vin(des_dir, diff_txt_path, diff_img_dir)
+    vin_ocr_res(des_dir)
+
+
 if __name__ == '__main__':
-    start_eval_add_det()
+    # start_eval_add_det_num(str(2))
+    # start_eval_add_det_num(str(0))
+    # start_eval_add_det_num(str(3))
+    # start_eval_add_det_num(str(4))
+    start_eval_temp_err()

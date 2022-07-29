@@ -1,3 +1,5 @@
+import os
+
 import cv2
 import imutils
 import numpy as np
@@ -13,6 +15,9 @@ def download_img(des_path, url):
     :param url: 图片地址
     :return: 图片本地路径
     """
+
+    if not os.path.exists(des_path):
+        os.makedirs(des_path)
     try:
         image_name = url[url.rfind('/') + 1:]
         r = requests.get(url, stream=True)
